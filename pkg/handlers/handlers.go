@@ -76,9 +76,10 @@ func (m *Repository) PostMakePostHandler(w http.ResponseWriter, r *http.Request)
 	}
 
 	// get the form data from template and create a new struct `article`
-	article := models.Article{
-		BlogTitle:   r.Form.Get("blog_title"),
-		BlogArticle: r.Form.Get("blog_article"),
+	article := models.Post{
+		UserID:  1,
+		Title:   r.Form.Get("blog_title"),
+		Content: r.Form.Get("blog_article"),
 	}
 
 	form := forms.NewForm(r.PostForm) // creates a new post form
@@ -97,6 +98,13 @@ func (m *Repository) PostMakePostHandler(w http.ResponseWriter, r *http.Request)
 		render.RenderTemplate(w, r, "makepost.page.gotmpl", &models.PageData{Form: form, DataMap: data})
 		return
 	}
+
+	// Write article to the DB
+	err = m.DB.InsertPost(article)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	m.App.Session.Put(r.Context(), "article", article) // put the post data to the session as k:v pair.
 	http.Redirect(w, r, "/article-received", http.StatusSeeOther)
 }
