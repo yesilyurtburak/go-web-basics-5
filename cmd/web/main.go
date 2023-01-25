@@ -47,6 +47,8 @@ func main() {
 
 func run() (*dbdriver.DB, error) {
 	gob.Register(models.Article{}) // can use models.Article inside of our sessions.
+	gob.Register(models.User{})    // adds User table model into the session
+	gob.Register(models.Post{})    // adds Post table model into the session
 
 	// initialize the session
 	sessionManager = scs.New()
