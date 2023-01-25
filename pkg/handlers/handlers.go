@@ -6,22 +6,27 @@ import (
 
 	"github.com/yesilyurtburak/go-web-basics-5/models"
 	"github.com/yesilyurtburak/go-web-basics-5/pkg/config"
+	"github.com/yesilyurtburak/go-web-basics-5/pkg/dbdriver"
 	"github.com/yesilyurtburak/go-web-basics-5/pkg/forms"
 	"github.com/yesilyurtburak/go-web-basics-5/pkg/render"
+	"github.com/yesilyurtburak/go-web-basics-5/pkg/repository"
+	"github.com/yesilyurtburak/go-web-basics-5/pkg/repository/dbrepo"
 )
 
 // Type definition for Repository pattern
 type Repository struct {
 	App *config.AppConfig
+	DB  repository.DatabaseRepo
 }
 
 // Variable declaration for Repository pattern
 var Repo *Repository
 
 // Function definition for creating a new Repository
-func NewRepo(app *config.AppConfig) *Repository {
+func NewRepo(app *config.AppConfig, db *dbdriver.DB) *Repository {
 	return &Repository{
 		App: app,
+		DB:  dbrepo.NewPostgresRepo(db.SQL, app),
 	}
 }
 

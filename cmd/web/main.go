@@ -10,6 +10,7 @@ import (
 	"github.com/alexedwards/scs/v2"
 	"github.com/yesilyurtburak/go-web-basics-5/models"
 	"github.com/yesilyurtburak/go-web-basics-5/pkg/config"
+	"github.com/yesilyurtburak/go-web-basics-5/pkg/dbdriver"
 	"github.com/yesilyurtburak/go-web-basics-5/pkg/handlers"
 )
 
@@ -23,6 +24,28 @@ var sessionManager *scs.SessionManager // defines a new SessionManager variable 
 var app config.AppConfig               // defines a new configuration variable `app`
 
 func main() {
+
+	db, err := run()
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer db.SQL.Close()
+
+	// create and configure a new server
+	srv := &http.Server{
+		Addr:    url,
+		Handler: routes(&app),
+	}
+
+	// listen to the traffic for incoming http requests.
+	fmt.Printf("Listening traffic at %s\n", url)
+	err = srv.ListenAndServe()
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
+func run() (*dbdriver.DB, error) {
 	gob.Register(models.Article{}) // can use models.Article inside of our sessions.
 
 	// initialize the session
@@ -34,19 +57,14 @@ func main() {
 
 	app.Session = sessionManager // saves the session information to the system.
 
-	repo := handlers.NewRepo(&app) // creates a new repo
-	handlers.NewHandlers(repo)     // this assign the value `repo` to `Repo` variable inside the handlers.go
-
-	// create and configure a new server
-	srv := &http.Server{
-		Addr:    url,
-		Handler: routes(&app),
-	}
-
-	// listen to the traffic for incoming http requests.
-	fmt.Printf("Listening traffic at %s\n", url)
-	err := srv.ListenAndServe()
+	// create and connect to the database
+	db, err := dbdriver.ConnectSQL("host=localhost port=5432 dbname=blog_db user=postgres password=postgres")
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal("Can't connect to the database.")
 	}
+
+	repo := handlers.NewRepo(&app, db) // creates a new repo and a new database repo
+	handlers.NewHandlers(repo)         // this assign the value `repo` to `Repo` variable inside the handlers.go
+
+	return db, nil
 }
