@@ -127,3 +127,37 @@ func (m *Repository) ArticleReceived(w http.ResponseWriter, r *http.Request) {
 
 	render.RenderTemplate(w, r, "article-received.page.gotmpl", &models.PageData{DataMap: data})
 }
+
+func (m *Repository) PostLoginHandler(w http.ResponseWriter, r *http.Request) {
+	_ = m.App.Session.RenewToken(r.Context()) // prevent session fixation attempts
+
+	err := r.ParseForm()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	email := r.Form.Get("email")
+	password := r.Form.Get("password")
+
+	form := forms.NewForm(r.PostForm)
+	form.HasRequired("email", "password")
+	form.IsEmail("email")
+
+	if !form.IsValid() {
+		render.RenderTemplate(w, r, "login.page.gotmpl", &models.PageData{
+			Form: form,
+		})
+		return
+	}
+
+	id, _, err := m.DB.AuthenticateUser(email, password)
+	if err != nil {
+		m.App.Session.Put(r.Context(), "error", "Invalid email or password")
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	}
+
+	m.App.Session.Put(r.Context(), "user_id", id)
+	m.App.Session.Put(r.Context(), "flash", "Valid Login")
+	http.Redirect(w, r, "/", http.StatusSeeOther)
+}
