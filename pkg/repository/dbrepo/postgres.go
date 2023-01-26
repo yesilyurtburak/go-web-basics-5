@@ -3,7 +3,6 @@ package dbrepo
 import (
 	"context"
 	"errors"
-	"fmt"
 	"time"
 
 	"github.com/yesilyurtburak/go-web-basics-5/models"
@@ -93,9 +92,9 @@ func (m *postgresDBRepo) AddUser(user models.User) error {
 
 	hashedPassword := string(pw)
 
-	query := fmt.Sprintf(`INSERT INTO users(name, email, password, account_created, last_login, user_type) VALUES ('%s', '%s','%s',%v,%v,%d);`, user.Name, user.Email, hashedPassword, user.AccountCreated, user.LastLogin, user.UserType)
+	query := `INSERT INTO users(name, email, password, account_created, last_login, user_type) VALUES ($1, $2, $3, $4, $5, $6);`
 
-	_, err = m.DB.ExecContext(ctx, query)
+	_, err = m.DB.ExecContext(ctx, query, user.Name, user.Email, hashedPassword, user.AccountCreated, user.LastLogin, user.UserType)
 	if err != nil {
 		return err
 	}
