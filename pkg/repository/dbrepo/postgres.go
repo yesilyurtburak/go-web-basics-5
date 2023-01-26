@@ -100,3 +100,48 @@ func (m *postgresDBRepo) AddUser(user models.User) error {
 	}
 	return nil
 }
+
+// select an article from post table and fetch it.
+func (m *postgresDBRepo) GetAnArticle() (int, int, string, string, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel() // cancels if can't connect within 5 seconds.
+
+	var id, uID int
+	var aTitle, aContent string
+
+	query := `SELECT id, user_id, title, content FROM post LIMIT 1`
+
+	row := m.DB.QueryRowContext(ctx, query)
+	err := row.Scan(&id, &uID, &aTitle, &aContent)
+	if err != nil {
+		return id, uID, "", "", err
+	}
+	return id, uID, aTitle, aContent, nil
+}
+
+func (m *postgresDBRepo) GetArticlesForHomepage() (models.ArticleList, error) {
+	var arList models.ArticleList
+	query := `SELECT id, user_id, title, content FROM post ORDER BY id DESC LIMIT $1`
+	rows, err := m.DB.Query(query, 3)
+	if err != nil {
+		panic(err)
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var id, uID int
+		var title, content string
+		err = rows.Scan(&id, &uID, &title, &content)
+		if err != nil {
+			panic(err)
+		}
+		arList.ID = append(arList.ID, id)
+		arList.UserID = append(arList.UserID, uID)
+		arList.Title = append(arList.Title, title)
+		arList.Content = append(arList.Content, content)
+	}
+	err = rows.Err()
+	if err != nil {
+		panic(err)
+	}
+	return arList, nil
+}

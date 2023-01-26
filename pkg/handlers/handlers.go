@@ -41,7 +41,29 @@ func (m *Repository) HomeHandler(w http.ResponseWriter, r *http.Request) {
 	if !m.App.Session.Exists(r.Context(), "user_id") {
 		http.Redirect(w, r, "/login", http.StatusTemporaryRedirect)
 	}
-	render.RenderTemplate(w, r, "home.page.gotmpl", &models.PageData{})
+
+	// id, uid, title, content, err := m.DB.GetAnArticle()
+	// if err != nil {
+	// 	log.Println(err)
+	// 	return
+	// }
+	// fmt.Println("ID:", id)
+	// fmt.Println("USER ID:", uid)
+	// fmt.Println("TITLE:", title)
+	// fmt.Println("CONTENT:", content)
+
+	var articleList models.ArticleList
+	articleList, err := m.DB.GetArticlesForHomepage()
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
+	// it will pass the data to the template
+	data := make(map[string]interface{})
+	data["articleList"] = articleList
+
+	render.RenderTemplate(w, r, "home.page.gotmpl", &models.PageData{DataMap: data})
 }
 
 func (m *Repository) AboutHandler(w http.ResponseWriter, r *http.Request) {

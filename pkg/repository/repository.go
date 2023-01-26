@@ -9,4 +9,6 @@ type DatabaseRepo interface {
 	UpdateUser(u models.User) error
 	AuthenticateUser(email, testPassword string) (int, string, error)
 	AddUser(user models.User) error
+	GetAnArticle() (int, int, string, string, error)
+	GetArticlesForHomepage() (models.ArticleList, error)
 }
