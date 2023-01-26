@@ -3,6 +3,7 @@ package handlers
 import (
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/yesilyurtburak/go-web-basics-5/models"
 	"github.com/yesilyurtburak/go-web-basics-5/pkg/config"
@@ -36,10 +37,18 @@ func NewHandlers(r *Repository) {
 }
 
 func (m *Repository) HomeHandler(w http.ResponseWriter, r *http.Request) {
+	// is user logged in to see this page?
+	if !m.App.Session.Exists(r.Context(), "user_id") {
+		http.Redirect(w, r, "/login", http.StatusTemporaryRedirect)
+	}
 	render.RenderTemplate(w, r, "home.page.gotmpl", &models.PageData{})
 }
 
 func (m *Repository) AboutHandler(w http.ResponseWriter, r *http.Request) {
+	// is user logged in to see this page?
+	if !m.App.Session.Exists(r.Context(), "user_id") {
+		http.Redirect(w, r, "/login", http.StatusTemporaryRedirect)
+	}
 	strMap := make(map[string]string)
 	render.RenderTemplate(w, r, "about.page.gotmpl", &models.PageData{StrMap: strMap})
 	// created a strMap and send some information to about.page.gotmpl template via models.PageData
@@ -51,11 +60,21 @@ func (m *Repository) LoginHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (m *Repository) PageHandler(w http.ResponseWriter, r *http.Request) {
+	// is user logged in to see this page?
+	if !m.App.Session.Exists(r.Context(), "user_id") {
+		http.Redirect(w, r, "/login", http.StatusTemporaryRedirect)
+	}
 	strMap := make(map[string]string)
 	render.RenderTemplate(w, r, "page.page.gotmpl", &models.PageData{StrMap: strMap})
 }
 
 func (m *Repository) MakePostHandler(w http.ResponseWriter, r *http.Request) {
+
+	// is user logged in to see this page?
+	if !m.App.Session.Exists(r.Context(), "user_id") {
+		http.Redirect(w, r, "/login", http.StatusTemporaryRedirect)
+	}
+
 	// created an empty article which we will then populate using the information on the server side that the user provides to us.
 	var emptyArticle models.Article
 	data := make(map[string]interface{})
@@ -75,9 +94,10 @@ func (m *Repository) PostMakePostHandler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
+	userId := m.App.Session.Get(r.Context(), "user_id")
 	// get the form data from template and create a new struct `article`
 	article := models.Post{
-		UserID:  1,
+		UserID:  userId.(int),
 		Title:   r.Form.Get("blog_title"),
 		Content: r.Form.Get("blog_article"),
 	}
@@ -128,6 +148,7 @@ func (m *Repository) ArticleReceived(w http.ResponseWriter, r *http.Request) {
 	render.RenderTemplate(w, r, "article-received.page.gotmpl", &models.PageData{DataMap: data})
 }
 
+// new login
 func (m *Repository) PostLoginHandler(w http.ResponseWriter, r *http.Request) {
 	_ = m.App.Session.RenewToken(r.Context()) // prevent session fixation attempts
 
@@ -150,6 +171,7 @@ func (m *Repository) PostLoginHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// check if the entered password is same as the password that in the database.
 	id, _, err := m.DB.AuthenticateUser(email, password)
 	if err != nil {
 		m.App.Session.Put(r.Context(), "error", "Invalid email or password")
@@ -157,7 +179,61 @@ func (m *Repository) PostLoginHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	m.App.Session.Put(r.Context(), "user_id", id)
+	m.App.Session.Put(r.Context(), "user_id", id) // user logged in with success
 	m.App.Session.Put(r.Context(), "flash", "Valid Login")
 	http.Redirect(w, r, "/", http.StatusSeeOther)
+}
+
+// This function logs out and clear all session.
+func (m *Repository) LogoutHandler(w http.ResponseWriter, r *http.Request) {
+	_ = m.App.Session.Destroy(r.Context())    // delete all session data
+	_ = m.App.Session.RenewToken(r.Context()) // prevent session fixation attempts
+	http.Redirect(w, r, "/login", http.StatusSeeOther)
+}
+
+// register new user
+func (m *Repository) SignupHandler(w http.ResponseWriter, r *http.Request) {
+	render.RenderTemplate(w, r, "signup.page.gotmpl", &models.PageData{})
+}
+
+// register new user
+func (m *Repository) PostSignupHandler(w http.ResponseWriter, r *http.Request) {
+	_ = m.App.Session.RenewToken(r.Context()) // prevent session fixation attempts
+
+	err := r.ParseForm()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	form := forms.NewForm(r.PostForm)
+
+	form.HasRequired("name", "email", "password")
+	form.IsEmail("email")
+	form.MinLength("password", 5, r)
+
+	if !form.IsValid() {
+		render.RenderTemplate(w, r, "signup.page.gotmpl", &models.PageData{
+			Form: form,
+		})
+		return
+	}
+
+	newUser := models.User{
+		Name:           r.Form.Get("name"),
+		Password:       r.Form.Get("password"),
+		Email:          r.Form.Get("email"),
+		UserType:       1,
+		AccountCreated: time.Now(),
+		LastLogin:      time.Now(),
+	}
+
+	err = m.DB.AddUser(newUser)
+	if err != nil {
+		m.App.Session.Put(r.Context(), "error", "Registration failed!")
+		http.Redirect(w, r, "/signup", http.StatusSeeOther)
+		return
+	}
+
+	m.App.Session.Put(r.Context(), "flash", "Signed Up Successfully")
+	http.Redirect(w, r, "/login", http.StatusSeeOther)
 }

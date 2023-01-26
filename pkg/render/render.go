@@ -7,15 +7,28 @@ import (
 
 	"github.com/justinas/nosurf"
 	"github.com/yesilyurtburak/go-web-basics-5/models"
+	"github.com/yesilyurtburak/go-web-basics-5/pkg/config"
 	"github.com/yesilyurtburak/go-web-basics-5/pkg/helpers"
 )
 
 // do not render everything while reloading the page, use templateCache instead.
 var templateCache = make(map[string]*template.Template)
 
+var app *config.AppConfig
+
+func NewAppConfig(a *config.AppConfig) {
+	app = a
+}
+
 // This function pass the CSRF token to the template to handle post requests.
 func AddCSRFData(pd *models.PageData, r *http.Request) *models.PageData {
 	pd.CSRFToken = nosurf.Token(r) // generate a token
+
+	// add information to the pagedata if user logged in or not.
+	if app.Session.Exists(r.Context(), "user_id") {
+		pd.IsAuthenticated = true
+	}
+
 	return pd
 }
 

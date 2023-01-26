@@ -12,6 +12,7 @@ import (
 	"github.com/yesilyurtburak/go-web-basics-5/pkg/config"
 	"github.com/yesilyurtburak/go-web-basics-5/pkg/dbdriver"
 	"github.com/yesilyurtburak/go-web-basics-5/pkg/handlers"
+	"github.com/yesilyurtburak/go-web-basics-5/pkg/render"
 )
 
 const portNumber = "8080"
@@ -67,6 +68,8 @@ func run() (*dbdriver.DB, error) {
 
 	repo := handlers.NewRepo(&app, db) // creates a new repo and a new database repo
 	handlers.NewHandlers(repo)         // this assign the value `repo` to `Repo` variable inside the handlers.go
+
+	render.NewAppConfig(&app)
 
 	return db, nil
 }

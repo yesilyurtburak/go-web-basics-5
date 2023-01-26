@@ -2,10 +2,12 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"time"
 
 	"github.com/justinas/nosurf"
+	"github.com/yesilyurtburak/go-web-basics-5/pkg/helpers"
 )
 
 // Middleware performs some action either before or after a request.
@@ -38,4 +40,17 @@ func NoSurf(next http.Handler) http.Handler {
 		SameSite: http.SameSiteLaxMode, // for development
 	})
 	return noSurfHandler
+}
+
+// A middleware for authentication
+func Authenticate(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if !helpers.IsAuthenticated(r) {
+			app.Session.Put(r.Context(), "error", "You are not logged in!")
+			http.Redirect(w, r, "/login", http.StatusSeeOther)
+			log.Fatal("Error logging in")
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
 }

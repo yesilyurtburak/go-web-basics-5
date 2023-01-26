@@ -30,6 +30,9 @@ func routes(app *config.AppConfig) http.Handler {
 	mux.Post("/makepost", handlers.Repo.PostMakePostHandler)
 	mux.Get("/page", handlers.Repo.PageHandler)
 	mux.Get("/article-received", handlers.Repo.ArticleReceived)
+	mux.Get("/logout", handlers.Repo.LogoutHandler)
+	mux.Get("/signup", handlers.Repo.SignupHandler)
+	mux.Post("/signup", handlers.Repo.PostSignupHandler)
 
 	// for static files
 	fileServer := http.FileServer(http.Dir("./static/"))
