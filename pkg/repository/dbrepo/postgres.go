@@ -93,7 +93,7 @@ func (m *postgresDBRepo) AddUser(user models.User) error {
 
 	hashedPassword := string(pw)
 
-	query := fmt.Sprintf(`INSERT INTO users(name, email, password, account_created, last_login, user_type) VALUES (%s, %s,%s,%v,%v,%d);`, user.Name, user.Email, hashedPassword, user.AccountCreated, user.LastLogin, user.UserType)
+	query := fmt.Sprintf(`INSERT INTO users(name, email, password, account_created, last_login, user_type) VALUES ('%s', '%s','%s',%v,%v,%d);`, user.Name, user.Email, hashedPassword, user.AccountCreated, user.LastLogin, user.UserType)
 
 	_, err = m.DB.ExecContext(ctx, query)
 	if err != nil {
